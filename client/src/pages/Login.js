@@ -1,29 +1,66 @@
 import React, { useState } from 'react';
-import axios from 'axios';
+import { useMutation, gql } from '@apollo/client';
+import { useNavigate } from 'react-router-dom';
+
+const LOGIN_MUTATION = gql`
+  mutation Login($email: String!, $password: String!) {
+    login(email: $email, password: $password) {
+      token
+      user {
+        id
+        email
+      }
+    }
+  }
+`;
 
 const Login = () => {
-  const [formData, setFormData] = useState({ email: '', password: '' });
-
-  const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-  };
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [login, { loading, error }] = useMutation(LOGIN_MUTATION);
+  const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const response = await axios.post('http://localhost:5000/api/users/login', formData);
-      console.log(response.data);
-    } catch (error) {
-      console.error(error);
+      const { data } = await login({ variables: { email, password } });
+      if (data && data.login) {
+        localStorage.setItem('token', data.login.token);
+        navigate('/'); // Redirect to the dashboard or any other page
+      }
+    } catch (err) {
+      console.error('Login error:', err);
     }
   };
 
   return (
-    <form onSubmit={handleSubmit}>
-      <input type="email" name="email" placeholder="Email" value={formData.email} onChange={handleChange} required />
-      <input type="password" name="password" placeholder="Password" value={formData.password} onChange={handleChange} required />
-      <button type="submit">Login</button>
-    </form>
+    <div>
+      <h2>Login</h2>
+      <form onSubmit={handleSubmit}>
+        <div>
+          <label>Email</label>
+          <input
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+          />
+        </div>
+        <div>
+          <label>Password</label>
+          <input
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+          />
+        </div>
+        <button type="submit" disabled={loading}>
+          {loading ? 'Logging in...' : 'Login'}
+        </button>
+        {error && <p>Error: {error.message}</p>}
+      </form>
+    </div>
   );
 };
 
