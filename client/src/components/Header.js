@@ -1,13 +1,21 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 
-const Header = () => {
+const Header = ({ isAuthenticated, handleLogout }) => {
   return (
     <header>
       <nav>
         <Link to="/">Home</Link>
-        <Link to="/register">Register</Link>
-        <Link to="/login">Login</Link>
+        {isAuthenticated ? (
+          <>
+            <button onClick={handleLogout}>Logout</button>
+          </>
+        ) : (
+          <>
+            <Link to="/register">Register</Link>
+            <Link to="/login">Login</Link>
+          </>
+        )}
       </nav>
     </header>
   );

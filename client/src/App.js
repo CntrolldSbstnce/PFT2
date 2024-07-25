@@ -1,5 +1,5 @@
-import React from 'react';
-import { Routes, Route } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Route, Routes, Navigate } from 'react-router-dom';
 import Home from './pages/Home';
 import Login from './pages/Login';
 import Register from './components/Register';
@@ -12,18 +12,32 @@ import Header from './components/Header';
 import Footer from './components/Footer';
 
 const App = () => {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      setIsAuthenticated(true);
+    }
+  }, []);
+
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    setIsAuthenticated(false);
+  };
+
   return (
     <div>
-      <Header />
+      <Header isAuthenticated={isAuthenticated} handleLogout={handleLogout} />
       <Routes>
-        <Route path="/" element={<Home />} />
-        <Route path="/login" element={<Login />} />
+        <Route path="/" element={isAuthenticated ? <Dashboard /> : <Home />} />
+        <Route path="/login" element={<Login setIsAuthenticated={setIsAuthenticated} />} />
         <Route path="/register" element={<Register />} />
-        <Route path="/dashboard" element={<Dashboard />} />
-        <Route path="/add-income" element={<AddIncome />} />
-        <Route path="/add-expense" element={<AddExpense />} />
-        <Route path="/income-list" element={<IncomeList />} />
-        <Route path="/expense-list" element={<ExpenseList />} />
+        <Route path="/dashboard" element={isAuthenticated ? <Dashboard /> : <Navigate to="/login" />} />
+        <Route path="/add-income" element={isAuthenticated ? <AddIncome /> : <Navigate to="/login" />} />
+        <Route path="/add-expense" element={isAuthenticated ? <AddExpense /> : <Navigate to="/login" />} />
+        <Route path="/income-list" element={isAuthenticated ? <IncomeList /> : <Navigate to="/login" />} />
+        <Route path="/expense-list" element={isAuthenticated ? <ExpenseList /> : <Navigate to="/login" />} />
       </Routes>
       <Footer />
     </div>

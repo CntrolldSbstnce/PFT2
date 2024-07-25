@@ -14,7 +14,7 @@ const LOGIN_MUTATION = gql`
   }
 `;
 
-const Login = () => {
+const Login = ({ setIsAuthenticated }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [login, { loading, error }] = useMutation(LOGIN_MUTATION);
@@ -26,7 +26,8 @@ const Login = () => {
       const { data } = await login({ variables: { email, password } });
       if (data && data.login) {
         localStorage.setItem('token', data.login.token);
-        navigate('/'); // Redirect to the dashboard or any other page
+        setIsAuthenticated(true);
+        navigate('/dashboard'); // Redirect to the dashboard
       }
     } catch (err) {
       console.error('Login error:', err);
