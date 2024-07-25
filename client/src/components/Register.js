@@ -4,9 +4,11 @@ import { useMutation, gql } from '@apollo/client';
 const REGISTER_MUTATION = gql`
   mutation Register($name: String!, $email: String!, $password: String!) {
     register(name: $name, email: $email, password: $password) {
-      id
-      name
-      email
+      token
+      user {
+        id
+        email
+      }
     }
   }
 `;
@@ -15,36 +17,57 @@ const Register = () => {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [register, { loading, error }] = useMutation(REGISTER_MUTATION);
 
-  const [register, { data }] = useMutation(REGISTER_MUTATION);
-
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    register({ variables: { name, email, password } });
+    try {
+      const { data } = await register({ variables: { name, email, password } });
+      if (data && data.register) {
+        localStorage.setItem('token', data.register.token);
+      }
+    } catch (err) {
+      console.error('Registration error:', err);
+    }
   };
 
   return (
-    <form onSubmit={handleSubmit}>
-      <input
-        type="text"
-        placeholder="Name"
-        value={name}
-        onChange={(e) => setName(e.target.value)}
-      />
-      <input
-        type="email"
-        placeholder="Email"
-        value={email}
-        onChange={(e) => setEmail(e.target.value)}
-      />
-      <input
-        type="password"
-        placeholder="Password"
-        value={password}
-        onChange={(e) => setPassword(e.target.value)}
-      />
-      <button type="submit">Register</button>
-    </form>
+    <div>
+      <h2>Register</h2>
+      <form onSubmit={handleSubmit}>
+        <div>
+          <label>Name</label>
+          <input
+            type="text"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            required
+          />
+        </div>
+        <div>
+          <label>Email</label>
+          <input
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+          />
+        </div>
+        <div>
+          <label>Password</label>
+          <input
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+          />
+        </div>
+        <button type="submit" disabled={loading}>
+          {loading ? 'Registering...' : 'Register'}
+        </button>
+        {error && <p>Error: {error.message}</p>}
+      </form>
+    </div>
   );
 };
 

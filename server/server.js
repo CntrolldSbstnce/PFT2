@@ -1,44 +1,49 @@
+// server.js
+require('dotenv').config();  // Load environment variables
+const config = require('./config/config'); // Ensure this path is correct
 const express = require('express');
 const mongoose = require('mongoose');
-const cors = require('cors');
-const dotenv = require('dotenv');
-const { ApolloServer } = require('apollo-server-express');
+const { ApolloServer, AuthenticationError } = require('apollo-server-express'); // Add AuthenticationError here
 const typeDefs = require('./graphql/schema');
 const resolvers = require('./graphql/resolvers');
-const userRoutes = require('./routes/userRoutes');
+const cors = require('cors');
+const jwt = require('jsonwebtoken');
 
-dotenv.config();
+const startServer = async () => {
+  const app = express();
+  app.use(cors());
 
-const app = express();
-app.use(express.json());
-app.use(cors());
-
-const PORT = process.env.PORT || 5000;
-
-mongoose.connect(process.env.MONGO_URI, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-}).then(() => {
-  app.listen(PORT, () => {
-    console.log(`Server is running on port ${PORT}`);
+  const server = new ApolloServer({
+    typeDefs,
+    resolvers,
+    context: ({ req }) => {
+      const token = req.headers.authorization || '';
+      if (token) {
+        try {
+          const user = jwt.verify(token.split(' ')[1], `${process.env.JWT_SECRET}`);
+          return { user };
+        } catch (err) {
+          console.error('Token verification error:', err);
+          throw new AuthenticationError('Invalid/Expired token');
+        }
+      }
+      return {};
+    },
   });
-}).catch((error) => {
-  console.log('Database connection failed:', error);
-});
 
-const server = new ApolloServer({
-  typeDefs,
-  resolvers,
-  context: ({ req }) => {
-    // Add the user to the context
-    const token = req.headers.authorization || '';
-    return { token };
-  },
-});
+  await server.start(); // Await server start before applying middleware
+  server.applyMiddleware({ app });
 
-server.start().then(() => {
-  server.applyMiddleware({ app, path: '/graphql' });
-  console.log(`Apollo Server ready at http://localhost:${PORT}/graphql`);
-});
+  mongoose
+    .connect(config.mongoURI)
+    .then(() => {
+      app.listen(config.port, () => {
+        console.log(`Server is running on http://localhost:${config.port}${server.graphqlPath}`);
+      });
+    })
+    .catch((err) => {
+      console.error('Database connection failed:', err.message);
+    });
+};
 
-app.use('/api/users', userRoutes);
+startServer();
